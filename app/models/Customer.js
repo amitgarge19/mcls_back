@@ -4,7 +4,7 @@
  */
 const mongoose = require('mongoose'),
 
-Schema = mongoose.Schema;
+  Schema = mongoose.Schema;
 
 let customer = new Schema({
   custId: {
@@ -120,7 +120,7 @@ let customer = new Schema({
   PAN: {
     type: String,
     default: ''
-  },
+  },  
   Aadhar: {
     type: String,
     default: ''
@@ -136,11 +136,11 @@ let customer = new Schema({
   Voter_ID: {
     type: String,
     default: ''
-  }, 
+  },
   Period_of_stay: {
     type: String,
     default: ''
-  }, 
+  },
   created_on: {
     type: Date,
     default: ''

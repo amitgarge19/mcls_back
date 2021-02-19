@@ -7,6 +7,9 @@ const check = require('../libs/checkLib');
 
 /* Models */
 const customerModel = mongoose.model('customer')
+const CustProfilePictureModel = mongoose.model('CustProfilePicture');
+const CustAadharModel = mongoose.model('CustAadhar');
+const CustPanModel = mongoose.model('CustPAN');
 const CustomerOccupationModel = mongoose.model('CustomerOccupation')
 const CustomerBankModel = mongoose.model('CustBankDetails');
 const CustomerFinancialModel = mongoose.model('CustomerFinancial')
@@ -22,29 +25,7 @@ const LoanAmountDetailsModel = mongoose.model('LoanAmountDetails');
 
 /* Controller Methods */
 let getAllCustomers = (req, res) => {
-    
-    customerModel.find({})
-        .select(' -__v -_id')
-        .lean()
-        .exec((err, result) => {
-            if (err) {
-                console.log(err)
-                logger.error(err.message, 'customerController: getAllCustomers', 10)
-                let apiResponse = response.generate(true, 'Failed To Find customer Details', 500, null)
-                res.send(apiResponse)
-            } else if (check.isEmpty(result)) {
-                logger.info('No Customer Found', 'customerController: getAllCustomers')
-                let apiResponse = response.generate(true, 'No Customer Found', 404, null)
-                res.send(apiResponse)
-            } else {
-                
-                let apiResponse = response.generate(false, 'All Customer Details Found', 200, result)
-                res.send(apiResponse)
-            }
-        })
-}
 
-let getAllCustomersOfOne=(req,res)=>{
     customerModel.find({})
         .select(' -__v -_id')
         .lean()
@@ -66,6 +47,29 @@ let getAllCustomersOfOne=(req,res)=>{
         })
 }
 
+let getAllCustomersOfOne = (req, res) => {
+    customerModel.find({})
+        .select(' -__v -_id')
+        .lean()
+        .exec((err, result) => {
+            if (err) {
+                console.log(err)
+                logger.error(err.message, 'customerController: getAllCustomers', 10)
+                let apiResponse = response.generate(true, 'Failed To Find customer Details', 500, null)
+                res.send(apiResponse)
+            } else if (check.isEmpty(result)) {
+                logger.info('No Customer Found', 'customerController: getAllCustomers')
+                let apiResponse = response.generate(true, 'No Customer Found', 404, null)
+                res.send(apiResponse)
+            } else {
+
+                let apiResponse = response.generate(false, 'All Customer Details Found', 200, result)
+                res.send(apiResponse)
+            }
+        })
+}
+
+/* Customer Personal Information related functions */
 let getSingleCustomerInfo = (req, res) => {
     if (check.isEmpty(req.params.custId)) {
 
@@ -179,11 +183,11 @@ let updateCustomerBasicDetails = (req, res) => {
     customerModel.updateOne({ 'custId': req.body.custId }, options).exec((err, result) => {
         if (err) {
             console.log(err)
-            logger.error(err.message, 'Customer Controller:updateCustomerBasicDetails', 10)
+            logger.error(err.message, 'CustomerController:updateCustomerBasicDetails', 10)
             let apiResponse = response.generate(true, 'Failed To edit Customer personal details', 500, null)
             res.send(apiResponse)
         } else if (check.isEmpty(result)) {
-            logger.info('No Customer Basic Details Found', 'Customer Controller: updateCustomerBasicDetails')
+            logger.info('No Customer Basic Details Found', 'CustomerController: updateCustomerBasicDetails')
             let apiResponse = response.generate(true, 'No Customer Basic details Found', 404, null)
             res.send(apiResponse)
         } else {
@@ -193,6 +197,379 @@ let updateCustomerBasicDetails = (req, res) => {
     });
 }
 
+/* Multimedia Data Profile Picture, PAN and Aadhar */
+
+//Profile Picture related Functions
+let getProfilePicture = (req, res) => {
+    if (check.isEmpty(req.body.CustID)) {
+
+        console.log('CustID should be passed')
+        let apiResponse = response.generate(true, 'CustID is missing', 403, null)
+        res.send(apiResponse)
+    } else {
+
+        CustProfilePictureModel.findOne({ 'CustID': req.body.CustID }, (err, result) => {
+
+            if (err) {
+                logger.error(`Error Occured : ${err}`, 'Database', 10)
+                let apiResponse = response.generate(true, 'Error Occured.', 500, null)
+                res.send(apiResponse)
+
+            } else if (check.isEmpty(result)) {
+
+                console.log('Profile Picture Not Found.')
+                let apiResponse = response.generate(true, 'Profile Picture Not Found', 404, null)
+                res.send(apiResponse)
+            } else {
+                logger.info("Profile Picture found successfully", "CustomerController:getProfilePicture", 5)
+                let apiResponse = response.generate(false, 'Profile Picture Found Successfully.', 200, result)
+                res.send(apiResponse)
+            }
+        })
+    }
+}
+
+let uploadProfilePic = (req, res) => {
+    if (req.body.CustID) {
+        console.log("req body CustID is there");
+        console.log(req.body);
+        CustProfilePictureModel.findOne({ "CustID": req.body.CustID }, (err, CustomerProfilePictureDetails) => {
+
+            /* handle the error here if the Customer Profile Picture Details details are not found */
+            if (err) {
+                console.log(err)
+                logger.error('Failed To Retrieve Customer Profile picture Data', 'CustomerController: uploadProfilePic()', 10)
+                /* generate the error message and the api response message here */
+                let apiResponse = response.generate(true, 'Failed To Find Customer Profile Picture Details', 500, null)
+                res.send(apiResponse)
+
+            } else {
+
+                console.log(req.file) // to see what is returned to you
+
+                const file = {};
+
+                file.CustID = req.body.CustID;
+                file.public_id = req.file.public_id;
+                file.url = req.file.url;
+
+                CustProfilePictureModel.create(file) // save image information in database
+
+                    .then(newFile => res.json(newFile))
+
+                    .catch(
+                        err => logger.error(err, 'CustomerController.uploadProfilePic()', 8))
+            }
+        });
+    } else {
+        let apiResponse = response.generate(true, '"CustID" parameter is missing in the request of uploadProfilePicture', 400, null)
+        res.send(apiResponse);
+    }
+}
+
+let updateProfilePic = (req, res) => {
+
+    if (req.body.CustID) {
+        console.log("req body CustID is there");
+        console.log(req.body);
+
+        let toDeleteAssetFromCloudinary = req.body.AssetToDelete;
+        console.log("toDeleteAssetFromCloudinary=" + toDeleteAssetFromCloudinary);
+
+        CustProfilePictureModel.findOne({ CustID: req.body.CustID }, (err, CustomerProfilePictureDetails) => {
+
+            /* handle the error here if the Customer Profile Picture Details details are not found */
+            if (err) {
+                console.log(err)
+                logger.error('Failed To Retrieve Customer Profile picture Data', 'CustomerController: updateProfilePic()', 10)
+                /* generate the error message and the api response message here */
+                let apiResponse = response.generate(true, 'Failed To Find Customer Profile Picture Details', 500, null)
+                res.send(apiResponse)
+
+            } else if (check.isEmpty(CustomerProfilePictureDetails)) {
+                console.log('Profile Picture Not Found.')
+                let apiResponse = response.generate(true, 'Profile Picture Not Found', 404, null)
+                res.send(apiResponse)
+
+            } else if (!check.isEmpty(CustomerProfilePictureDetails)) {
+
+                let options = req.file;
+
+                console.log(req.file) // to see what is returned to you                
+
+                CustProfilePictureModel.updateOne({ 'CustID': req.body.CustID }, options).exec((err, result) => {
+                    if (err) {
+                        console.log(err)
+                        logger.error(err.message, 'CustomerController:updateProfilePic', 10)
+                        let apiResponse = response.generate(true, 'Failed To update Customer profile picture', 500, null)
+                        res.send(apiResponse)
+                    } else if (check.isEmpty(result)) {
+                        logger.info('No Customer Profile picture details Found', 'CustomerController: updateFranOfficeDetails')
+                        let apiResponse = response.generate(true, 'No Customer profile picture Found', 404, null)
+                        res.send(apiResponse)
+                    } else {
+
+                        let apiResponse = response.generate(false, 'Customer profile picture updated', 200, result)
+                        res.send(apiResponse)
+                        cloudinary.deleteFromCloudinary(req.body.AssetToDelete);
+                    }
+                });
+            }
+        });
+    } else {
+        let apiResponse = response.generate(true, '"CustID" parameter is missing in the request of profile picture', 400, null)
+        res.send(apiResponse);
+    }
+}
+//Profile Picture related Functions END
+
+//Aadhar PDF related Functions
+let getAadharPDF = (req, res) => {
+    if (check.isEmpty(req.body.CustID)) {
+
+        console.log('CustID should be passed')
+        let apiResponse = response.generate(true, 'CustID is missing', 403, null)
+        res.send(apiResponse)
+    } else {
+
+        CustAadharModel.findOne({ 'CustID': req.body.CustID }, (err, result) => {
+
+            if (err) {
+                logger.error(`Error Occured : ${err}`, 'Database', 10)
+                let apiResponse = response.generate(true, 'Error Occured.', 500, null)
+                res.send(apiResponse)
+
+            } else if (check.isEmpty(result)) {
+
+                console.log('Aadhar PDF Not Found.')
+                let apiResponse = response.generate(true, 'Aadhar PDF Not Found', 404, null)
+                res.send(apiResponse)
+            } else {
+                logger.info("Aadhar PDF found successfully", "CustomerController:getAadharPDF", 5)
+                let apiResponse = response.generate(false, 'Aadhar PDF Found Successfully.', 200, result)
+                res.send(apiResponse)
+            }
+        })
+    }
+}
+
+let uploadAadhar = (req, res) => {
+    if (req.body.CustID) {
+        console.log("req body CustID is there");
+        console.log(req.body);
+        CustAadharModel.findOne({ "CustID": req.body.CustID }, (err, CustomerAadharPDFDetails) => {
+
+            /* handle the error here if the Customer Aadhar PDF Details details are not found */
+            if (err) {
+                console.log(err)
+                logger.error('Failed To Retrieve Customer Aadhar PDF Data', 'CustomerController: uploadAadhar()', 10)
+                /* generate the error message and the api response message here */
+                let apiResponse = response.generate(true, 'Failed To Find Customer Aadhar PDF Details', 500, null)
+                res.send(apiResponse)
+
+            } else {
+
+                console.log(req.file) // to see what is returned to you
+
+                const file = {};
+
+                file.CustID = req.body.CustID;
+                file.public_id = req.file.public_id;
+                file.url = req.file.url;
+
+                CustAadharModel.create(file) // save image information in database
+
+                    .then(newFile => res.json(newFile))
+
+                    .catch(
+                        err => logger.error(err, 'CustomerController.uploadAadhar()', 8))
+            }
+        });
+    } else {
+        let apiResponse = response.generate(true, '"CustID" parameter is missing in the request uploadAadhar()', 400, null)
+        res.send(apiResponse);
+    }
+}
+
+let updateAadhar = (req, res) => {
+    if (req.body.CustID) {
+        console.log("req body CustID is there");
+        console.log(req.body);
+
+        let toDeleteAssetFromCloudinary = req.body.AssetToDelete;
+        console.log("toDeleteAssetFromCloudinary=" + toDeleteAssetFromCloudinary);
+
+        CustAadharModel.findOne({ CustID: req.body.CustID }, (err, CustomerAadharPDFDetails) => {
+
+            /* handle the error here if the Customer Aadhar PDF Details details are not found */
+            if (err) {
+                console.log(err)
+                logger.error('Failed To Retrieve Customer Aadhar PDF Data', 'CustomerController: updateAadhar()', 10)
+                /* generate the error message and the api response message here */
+                let apiResponse = response.generate(true, 'Failed To Find Customer Aadhar PDF Details', 500, null)
+                res.send(apiResponse)
+
+            } else if (check.isEmpty(CustomerAadharPDFDetails)) {
+                console.log('Aadhar PDF Not Found.')
+                let apiResponse = response.generate(true, 'Aadhar PDF Not Found', 404, null)
+                res.send(apiResponse)
+
+            } else if (!check.isEmpty(CustomerAadharPDFDetails)) {
+
+                let options = req.file;
+
+                console.log(req.file) // to see what is returned to you                
+
+                CustAadharModel.updateOne({ 'CustID': req.body.CustID }, options).exec((err, result) => {
+                    if (err) {
+                        console.log(err)
+                        logger.error(err.message, 'CustomerController:updateAadhar', 10)
+                        let apiResponse = response.generate(true, 'Failed To update Customer Aadhar PDF', 500, null)
+                        res.send(apiResponse)
+                    } else if (check.isEmpty(result)) {
+                        logger.info('No Customer Aadhar PDF details Found', 'CustomerController: updateAadhar')
+                        let apiResponse = response.generate(true, 'No Customer Aadhar PDF Found', 404, null)
+                        res.send(apiResponse)
+                    } else {
+                        let apiResponse = response.generate(false, 'Customer Aadhar PDF updated', 200, result)
+                        res.send(apiResponse)
+                        cloudinary.deleteFromCloudinary(req.body.AssetToDelete);
+                    }
+                });
+            }
+        });
+    } else {
+        let apiResponse = response.generate(true, '"CustID" parameter is missing in the request of updateAadhar()', 400, null)
+        res.send(apiResponse);
+    }
+}
+//Aadhar PDF related Functions END
+
+//PAN PDF related Functions
+let getPanPDF = (req, res) => {
+
+    if (check.isEmpty(req.body.CustID)) {
+
+        console.log('CustID should be passed')
+        let apiResponse = response.generate(true, 'CustID is missing', 403, null)
+        res.send(apiResponse)
+    } else {
+
+        CustPanModel.findOne({ 'CustID': req.body.CustID }, (err, result) => {
+
+            if (err) {
+                logger.error(`Error Occured : ${err}`, 'Database', 10)
+                let apiResponse = response.generate(true, 'Error Occured.', 500, null)
+                res.send(apiResponse)
+
+            } else if (check.isEmpty(result)) {
+
+                console.log('Customer PAN PDF Not Found.')
+                let apiResponse = response.generate(true, 'Customer PAN PDF Not Found', 404, null)
+                res.send(apiResponse)
+            } else {
+                logger.info("Customer PAN PDF found successfully", "CustomerController:getPanPDF", 5)
+                let apiResponse = response.generate(false, 'Customer PAN PDF Found Successfully.', 200, result)
+                res.send(apiResponse)
+            }
+        })
+    }
+}
+
+let uploadpan = (req, res) => {
+    if (req.body.CustID) {
+        console.log("req body CustID is there");
+        console.log(req.body);
+        CustPanModel.findOne({ "CustID": req.body.CustID }, (err, CustomerPanPDFDetails) => {
+
+            /* handle the error here if the Customer PAN PDF Details details are not found */
+            if (err) {
+                console.log(err)
+                logger.error('Failed To Retrieve Customer PAN PDF Data', 'CustomerController: uploadpan()', 10)
+                /* generate the error message and the api response message here */
+                let apiResponse = response.generate(true, 'Failed To Find Customer PAN PDF Details', 500, null)
+                res.send(apiResponse)
+
+            } else {
+
+                console.log(req.file) // to see what is returned to you
+
+                const file = {};
+
+                file.CustID = req.body.CustID;
+                file.public_id = req.file.public_id;
+                file.url = req.file.url;
+
+                CustPanModel.create(file) // save image information in database
+
+                    .then(newFile => res.json(newFile))
+
+                    .catch(
+                        err => logger.error(err, 'CustomerController.uploadpan()', 8))
+            }
+        });
+    } else {
+        let apiResponse = response.generate(true, '"CustID" parameter is missing in the request uploadpan()', 400, null)
+        res.send(apiResponse);
+    }
+}
+
+let updatepan = (req, res) => {
+    if (req.body.CustID) {
+        console.log("req body CustID is there");
+        console.log(req.body);
+
+        let toDeleteAssetFromCloudinary = req.body.AssetToDelete;
+        console.log("toDeleteAssetFromCloudinary=" + toDeleteAssetFromCloudinary);
+
+        CustPanModel.findOne({ CustID: req.body.CustID }, (err, CustomerPanPDFDetails) => {
+
+            /* handle the error here if the Customer Aadhar PDF Details details are not found */
+            if (err) {
+                console.log(err)
+                logger.error('Failed To Retrieve Customer PAN PDF Data', 'CustomerController: updatepan()', 10)
+                /* generate the error message and the api response message here */
+                let apiResponse = response.generate(true, 'Failed To Find Customer PAN PDF Details', 500, null)
+                res.send(apiResponse)
+
+            } else if (check.isEmpty(CustomerPanPDFDetails)) {
+                console.log('PAN PDF Not Found.')
+                let apiResponse = response.generate(true, 'PAN PDF Not Found', 404, null)
+                res.send(apiResponse)
+
+            } else if (!check.isEmpty(CustomerPanPDFDetails)) {
+
+                let options = req.file;
+
+                console.log(req.file) // to see what is returned to you                
+
+                CustPanModel.updateOne({ 'CustID': req.body.CustID }, options).exec((err, result) => {
+                    if (err) {
+                        console.log(err)
+                        logger.error(err.message, 'CustomerController:updateAadhar', 10)
+                        let apiResponse = response.generate(true, 'Failed To update Customer PAN PDF', 500, null)
+                        res.send(apiResponse)
+                    } else if (check.isEmpty(result)) {
+                        logger.info('No Customer PAN PDF details Found', 'CustomerController: updatepan')
+                        let apiResponse = response.generate(true, 'No Customer PAN PDF Found', 404, null)
+                        res.send(apiResponse)
+                    } else {
+                        let apiResponse = response.generate(false, 'Customer PAN PDF updated', 200, result)
+                        res.send(apiResponse)
+                        cloudinary.deleteFromCloudinary(req.body.AssetToDelete);
+                    }
+                });
+            }
+        });
+    } else {
+        let apiResponse = response.generate(true, '"CustID" parameter is missing in the request of updatepan()', 400, null)
+        res.send(apiResponse);
+    }
+}
+//PAN PDF related Functions END
+/* END Customer Personal Information related functions */
+
+/* Customer Occupation Information related functions */
 let getCustomerOccupation = (req, res) => {
     if (check.isEmpty(req.params.custId)) {
 
@@ -290,11 +667,11 @@ let updateCustomerOccupationalDetails = (req, res) => {
     CustomerOccupationModel.updateOne({ 'custId': req.body.custId }, options).exec((err, result) => {
         if (err) {
             console.log(err)
-            logger.error(err.message, 'Customer Controller:updateCustomerOccupationalDetails', 10)
+            logger.error(err.message, 'CustomerController:updateCustomerOccupationalDetails', 10)
             let apiResponse = response.generate(true, 'Failed To edit Customer occupational details', 500, null)
             res.send(apiResponse)
         } else if (check.isEmpty(result)) {
-            logger.info('No Customer occupational Details Found', 'Customer Controller: updateCustomerOccupationalDetails')
+            logger.info('No Customer occupational Details Found', 'CustomerController: updateCustomerOccupationalDetails')
             let apiResponse = response.generate(true, 'No Customer occupational details Found', 404, null)
             res.send(apiResponse)
         } else {
@@ -303,7 +680,9 @@ let updateCustomerOccupationalDetails = (req, res) => {
         }
     });
 }
+/* END Customer Occupation Information related functions */
 
+/* Customer Financial Information related functions */
 let getCustomerFinance = (req, res) => {
     if (check.isEmpty(req.params.custId)) {
 
@@ -403,11 +782,11 @@ let updateCustomerFinancialDetails = (req, res) => {
     CustomerFinancialModel.updateOne({ 'custId': req.body.custId }, options).exec((err, result) => {
         if (err) {
             console.log(err)
-            logger.error(err.message, 'Customer Controller:updateCustomerFinancialDetails', 10)
+            logger.error(err.message, 'CustomerController:updateCustomerFinancialDetails', 10)
             let apiResponse = response.generate(true, 'Failed To edit Customer financial details', 500, null)
             res.send(apiResponse)
         } else if (check.isEmpty(result)) {
-            logger.info('No Customer financial Details Found', 'Customer Controller: updateCustomerFinancialDetails')
+            logger.info('No Customer financial Details Found', 'CustomerController: updateCustomerFinancialDetails')
             let apiResponse = response.generate(true, 'No Customer financial details Found', 404, null)
             res.send(apiResponse)
         } else {
@@ -416,7 +795,9 @@ let updateCustomerFinancialDetails = (req, res) => {
         }
     });
 }
+/* END Customer Financial Information related functions */
 
+/* Customer Bank Information related functions */
 let getCustomerBank = (req, res) => {
     if (check.isEmpty(req.params.custId)) {
 
@@ -504,11 +885,11 @@ let updateCustomerBankDetails = (req, res) => {
     CustomerBankModel.updateOne({ 'custId': req.body.custId }, options).exec((err, result) => {
         if (err) {
             console.log(err)
-            logger.error(err.message, 'Customer Controller:updateCustomerBankDetails', 10)
+            logger.error(err.message, 'CustomerController:updateCustomerBankDetails', 10)
             let apiResponse = response.generate(true, 'Failed To edit Customer bank details', 500, null)
             res.send(apiResponse)
         } else if (check.isEmpty(result)) {
-            logger.info('No Customer bank Details Found', 'Customer Controller: updateCustomerBankDetails')
+            logger.info('No Customer bank Details Found', 'CustomerController: updateCustomerBankDetails')
             let apiResponse = response.generate(true, 'No Customer bank details Found', 404, null)
             res.send(apiResponse)
         } else {
@@ -517,7 +898,9 @@ let updateCustomerBankDetails = (req, res) => {
         }
     });
 }
+/* END Customer Bank Information related functions */
 
+/* Customer Existing Loan Information related functions */
 let getCustomerExistingLoan = (req, res) => {
     if (check.isEmpty(req.params.custId)) {
 
@@ -587,11 +970,11 @@ let updateCustExistLoan = (req, res) => {
     CustExistLoanModel.updateOne({ 'custId': req.body.custId }, options).exec((err, result) => {
         if (err) {
             console.log(err)
-            logger.error(err.message, 'Customer Controller:updateCustExistLoan', 10)
+            logger.error(err.message, 'CustomerController:updateCustExistLoan', 10)
             let apiResponse = response.generate(true, 'Failed To edit Customer existing loan details', 500, null)
             res.send(apiResponse)
         } else if (check.isEmpty(result)) {
-            logger.info('No Customer existing loan Details Found', 'Customer Controller: updateCustExistLoan')
+            logger.info('No Customer existing loan Details Found', 'CustomerController: updateCustExistLoan')
             let apiResponse = response.generate(true, 'No Customer existing loan details Found', 404, null)
             res.send(apiResponse)
         } else {
@@ -600,7 +983,10 @@ let updateCustExistLoan = (req, res) => {
         }
     });
 }
+/* END Customer Existing Loan Information related functions */
 
+
+/* Customer Credit Card Information related functions */
 let getCustomerCCDetails = (req, res) => {
     if (check.isEmpty(req.params.custId)) {
 
@@ -672,11 +1058,11 @@ let updateCustCCDetails = (req, res) => {
     CreditCardModel.updateOne({ 'custId': req.body.custId }, options).exec((err, result) => {
         if (err) {
             console.log(err)
-            logger.error(err.message, 'Customer Controller:updateCustCCDetails', 10)
+            logger.error(err.message, 'CustomerController:updateCustCCDetails', 10)
             let apiResponse = response.generate(true, 'Failed To edit Customer Credit Card details', 500, null)
             res.send(apiResponse)
         } else if (check.isEmpty(result)) {
-            logger.info('No Customer Credit Card Details Found', 'Customer Controller: updateCustCCDetails')
+            logger.info('No Customer Credit Card Details Found', 'CustomerController: updateCustCCDetails')
             let apiResponse = response.generate(true, 'No Customer Credit Card details Found', 404, null)
             res.send(apiResponse)
         } else {
@@ -685,7 +1071,10 @@ let updateCustCCDetails = (req, res) => {
         }
     });
 }
+/* END Customer Credit Card related Information related functions */
 
+
+/* Customer Property Information related functions */
 let getCustomerPropertyDetails = (req, res) => {
     if (check.isEmpty(req.params.custId)) {
 
@@ -765,11 +1154,11 @@ let updateCustProperty = (req, res) => {
     CustPropertyModel.updateOne({ 'custId': req.body.custId }, options).exec((err, result) => {
         if (err) {
             console.log(err)
-            logger.error(err.message, 'Customer Controller:updateCustProperty', 10)
+            logger.error(err.message, 'CustomerController:updateCustProperty', 10)
             let apiResponse = response.generate(true, 'Failed To edit Customer Property details', 500, null)
             res.send(apiResponse)
         } else if (check.isEmpty(result)) {
-            logger.info('No Customer Property Details Found', 'Customer Controller: updateCustProperty')
+            logger.info('No Customer Property Details Found', 'CustomerController: updateCustProperty')
             let apiResponse = response.generate(true, 'No Customer Property details Found', 404, null)
             res.send(apiResponse)
         } else {
@@ -778,7 +1167,9 @@ let updateCustProperty = (req, res) => {
         }
     });
 }
+/* Customer Property Information related functions */
 
+/* Customer Insurance Information related functions */
 let getCustomerInsurance = (req, res) => {
     if (check.isEmpty(req.params.custId)) {
 
@@ -848,11 +1239,11 @@ let updateCustInsurance = (req, res) => {
     CustInsuranceModel.updateOne({ 'custId': req.body.custId }, options).exec((err, result) => {
         if (err) {
             console.log(err)
-            logger.error(err.message, 'Customer Controller:updateCustInsurance', 10)
+            logger.error(err.message, 'CustomerController:updateCustInsurance', 10)
             let apiResponse = response.generate(true, 'Failed To edit Customer Insurance details', 500, null)
             res.send(apiResponse)
         } else if (check.isEmpty(result)) {
-            logger.info('No Insurance Details Found', 'Customer Controller: updateCustInsurance')
+            logger.info('No Insurance Details Found', 'CustomerController: updateCustInsurance')
             let apiResponse = response.generate(true, 'No Customer Insurance details Found', 404, null)
             res.send(apiResponse)
         } else {
@@ -861,7 +1252,9 @@ let updateCustInsurance = (req, res) => {
         }
     });
 }
+/* END Customer Insurance Information related functions */
 
+/* Customer Loan Requirement Information related functions */
 let getCustomerLoanReq = (req, res) => {
     if (check.isEmpty(req.params.custId)) {
 
@@ -930,11 +1323,11 @@ let updateCustLoanReq = (req, res) => {
     CustLoanReqModel.updateOne({ 'custId': req.body.custId }, options).exec((err, result) => {
         if (err) {
             console.log(err)
-            logger.error(err.message, 'Customer Controller:updateCustLoanReq', 10)
+            logger.error(err.message, 'CustomerController:updateCustLoanReq', 10)
             let apiResponse = response.generate(true, 'Failed To edit Customer Loan Requirement details', 500, null)
             res.send(apiResponse)
         } else if (check.isEmpty(result)) {
-            logger.info('No Customer Loan Requirement Details Found', 'Customer Controller: updateCustLoanReq')
+            logger.info('No Customer Loan Requirement Details Found', 'CustomerController: updateCustLoanReq')
             let apiResponse = response.generate(true, 'No Customer Loan Requirement details Found', 404, null)
             res.send(apiResponse)
         } else {
@@ -943,7 +1336,9 @@ let updateCustLoanReq = (req, res) => {
         }
     });
 }
+/*END  Customer Loan Requirement Information related functions */
 
+/* Customer Loan Amount Information related functions */
 let getCustomerLoanAmt = (req, res) => {
     if (check.isEmpty(req.params.custId)) {
 
@@ -1023,11 +1418,11 @@ let updateCustLoanAmt = (req, res) => {
     LoanAmountDetailsModel.updateOne({ 'custId': req.body.custId }, options).exec((err, result) => {
         if (err) {
             console.log(err)
-            logger.error(err.message, 'Customer Controller:updateCustLoanAmt', 10)
+            logger.error(err.message, 'CustomerController:updateCustLoanAmt', 10)
             let apiResponse = response.generate(true, 'Failed To edit Customer Loan Amount details', 500, null)
             res.send(apiResponse)
         } else if (check.isEmpty(result)) {
-            logger.info('No Customer Loan Amount Details Found', 'Customer Controller: updateCustLoanAmt')
+            logger.info('No Customer Loan Amount Details Found', 'CustomerController: updateCustLoanAmt')
             let apiResponse = response.generate(true, 'No Customer Loan Amount details Found', 404, null)
             res.send(apiResponse)
         } else {
@@ -1036,8 +1431,9 @@ let updateCustLoanAmt = (req, res) => {
         }
     });
 }
+/*END Customer Loan Amount Information related functions */
 
-
+/*Co-Applicant Related Functions */
 let addCoApplicant = (req, res) => {
 
     CoApplicantModel.findOne({ Email: req.body.Email })
@@ -1252,7 +1648,7 @@ let addCoApplicantFinancialDetails = (req, res) => {
         }
     });
 }
-
+/*END Co-Applicant Related Functions */
 
 module.exports = {
     getAllCustomers: getAllCustomers,
@@ -1261,6 +1657,18 @@ module.exports = {
     getSingleCustomerInfo: getSingleCustomerInfo,
     addCustomer: addCustomer,
     updateCustomerBasicDetails: updateCustomerBasicDetails,
+
+    getProfilePicture: getProfilePicture,
+    uploadProfilePic: uploadProfilePic,
+    updateProfilePic: updateProfilePic,
+
+    getAadharPDF: getAadharPDF,
+    uploadAadhar: uploadAadhar,
+    updateAadhar: updateAadhar,
+
+    getPanPDF: getPanPDF,
+    uploadpan: uploadpan,
+    updatepan: updatepan,
 
     getCustomerOccupation: getCustomerOccupation,
     addCustomerOccupationalDetails: addCustomerOccupationalDetails,

@@ -12,6 +12,8 @@ const cloudinary = require('../libs/cloudi')
 /* Models */
 const FranchiseeModel = mongoose.model('Franchisee')
 const ProfilePictureModel = mongoose.model('ProfilePicture');
+const AadharModel = mongoose.model('Aadhar');
+const PanModel = mongoose.model('PAN');
 const FranchiseeBankModel = mongoose.model('FranchiseeBank')
 const FranchiseeOfficeModel = mongoose.model('FranchiseeOffice')
 const AuthModel = mongoose.model('Auth');
@@ -306,7 +308,7 @@ let signUpFunction = (req, res) => {
 
 let franchAdditionalDetails = (req, res) => {
 
-    let options = req.body;    
+    let options = req.body;
 
     options.modified_on = time.now();
 
@@ -325,11 +327,13 @@ let franchAdditionalDetails = (req, res) => {
             res.send(apiResponse)
         }
 
-       
+
     });// end Franchisee model update
 }
-/* END Franchisee Personal Information related functions */
 
+/* Multimedia Data Profile Picture, PAN and Aadhar */
+
+//Profile Picture related Functions
 let getProfilePicture = (req, res) => {
     if (check.isEmpty(req.body.FranchiseeId)) {
 
@@ -358,7 +362,44 @@ let getProfilePicture = (req, res) => {
         })
     }
 }
-// start user upload function 
+
+let uploadProfilePic = (req, res) => {
+    if (req.body.FranchiseeId) {
+        console.log("req body franId is there");
+        console.log(req.body);
+        ProfilePictureModel.findOne({ "FranchiseeId": req.body.FranchiseeId }, (err, FranchiseeProfilePictureDetails) => {
+
+            /* handle the error here if the Franchisee Profile Picture Details details are not found */
+            if (err) {
+                console.log(err)
+                logger.error('Failed To Retrieve Franchisee Profile picture Data', 'FranchiseeController: uploadProfilePic()', 10)
+                /* generate the error message and the api response message here */
+                let apiResponse = response.generate(true, 'Failed To Find Franchisee Profile Picture Details', 500, null)
+                res.send(apiResponse)
+
+            } else {
+
+                console.log(req.file) // to see what is returned to you
+
+                const file = {};
+
+                file.FranchiseeId = req.body.FranchiseeId;
+                file.public_id = req.file.public_id;
+                file.url = req.file.url;
+
+                ProfilePictureModel.create(file) // save image information in database
+
+                    .then(newFile => res.json(newFile))
+
+                    .catch(
+                        err => logger.error(err, 'userController.uploadProfilePic()', 8))
+            }
+        });
+    } else {
+        let apiResponse = response.generate(true, '"FranchiseeId" parameter is missing in the request of uploadProfilePicture', 400, null)
+        res.send(apiResponse);
+    }
+}
 
 let updateProfilePic = (req, res) => {
 
@@ -414,19 +455,50 @@ let updateProfilePic = (req, res) => {
         res.send(apiResponse);
     }
 }
+//Profile Picture related Functions END
 
-let uploadProfilePic = (req, res) => {
+//Aadhar PDF related Functions
+let getAadharPDF = (req, res) => {
+    if (check.isEmpty(req.body.FranchiseeId)) {
+
+        console.log('FranchiseeId should be passed')
+        let apiResponse = response.generate(true, 'FranchiseeId is missing', 403, null)
+        res.send(apiResponse)
+    } else {
+
+        AadharModel.findOne({ 'FranchiseeId': req.body.FranchiseeId }, (err, result) => {
+
+            if (err) {
+                logger.error(`Error Occured : ${err}`, 'Database', 10)
+                let apiResponse = response.generate(true, 'Error Occured.', 500, null)
+                res.send(apiResponse)
+
+            } else if (check.isEmpty(result)) {
+
+                console.log('Aadhar PDF Not Found.')
+                let apiResponse = response.generate(true, 'Aadhar PDF Not Found', 404, null)
+                res.send(apiResponse)
+            } else {
+                logger.info("Aadhar PDF found successfully", "FranchiseeController:getAadharPDF", 5)
+                let apiResponse = response.generate(false, 'Aadhar PDF Found Successfully.', 200, result)
+                res.send(apiResponse)
+            }
+        })
+    }
+}
+
+let uploadAadhar = (req, res) => {
     if (req.body.FranchiseeId) {
         console.log("req body franId is there");
         console.log(req.body);
-        ProfilePictureModel.findOne({ "FranchiseeId": req.body.FranchiseeId }, (err, FranchiseeProfilePictureDetails) => {
+        AadharModel.findOne({ "FranchiseeId": req.body.FranchiseeId }, (err, FranchiseeAadharPDFDetails) => {
 
-            /* handle the error here if the Franchisee Profile Picture Details details are not found */
+            /* handle the error here if the Franchisee Aadhar PDF Details details are not found */
             if (err) {
                 console.log(err)
-                logger.error('Failed To Retrieve Franchisee Profile picture Data', 'FranchiseeController: uploadProfilePic()', 10)
+                logger.error('Failed To Retrieve Franchisee Aadhar PDF Data', 'FranchiseeController: uploadAadhar()', 10)
                 /* generate the error message and the api response message here */
-                let apiResponse = response.generate(true, 'Failed To Find Franchisee Profile Picture Details', 500, null)
+                let apiResponse = response.generate(true, 'Failed To Find Franchisee Aadhar PDF Details', 500, null)
                 res.send(apiResponse)
 
             } else {
@@ -439,19 +511,199 @@ let uploadProfilePic = (req, res) => {
                 file.public_id = req.file.public_id;
                 file.url = req.file.url;
 
-                ProfilePictureModel.create(file) // save image information in database
+                AadharModel.create(file) // save image information in database
 
                     .then(newFile => res.json(newFile))
 
                     .catch(
-                        err => logger.error(err, 'userController.uploadProfilePic()', 8))
+                        err => logger.error(err, 'userController.uploadAadhar()', 8))
             }
         });
     } else {
-        let apiResponse = response.generate(true, '"FranchiseeId" parameter is missing in the request of office details', 400, null)
+        let apiResponse = response.generate(true, '"FranchiseeId" parameter is missing in the request uploadAadhar()', 400, null)
         res.send(apiResponse);
     }
 }
+
+let updateAadhar = (req, res) => {
+    if (req.body.FranchiseeId) {
+        console.log("req body franId is there");
+        console.log(req.body);
+
+        let toDeleteAssetFromCloudinary = req.body.AssetToDelete;
+        console.log("toDeleteAssetFromCloudinary=" + toDeleteAssetFromCloudinary);
+
+        AadharModel.findOne({ FranchiseeId: req.body.FranchiseeId }, (err, FranchiseeAadharPDFDetails) => {
+
+            /* handle the error here if the Franchisee Aadhar PDF Details details are not found */
+            if (err) {
+                console.log(err)
+                logger.error('Failed To Retrieve Franchisee Aadhar PDF Data', 'FranchiseeController: updateAadhar()', 10)
+                /* generate the error message and the api response message here */
+                let apiResponse = response.generate(true, 'Failed To Find Franchisee Aadhar PDF Details', 500, null)
+                res.send(apiResponse)
+
+            } else if (check.isEmpty(FranchiseeProfilePictureDetails)) {
+                console.log('Aadhar PDF Not Found.')
+                let apiResponse = response.generate(true, 'Aadhar PDF Not Found', 404, null)
+                res.send(apiResponse)
+
+            } else if (!check.isEmpty(FranchiseeProfilePictureDetails)) {
+
+                let options = req.file;
+
+                console.log(req.file) // to see what is returned to you                
+
+                AadharModel.updateOne({ 'FranchiseeId': req.body.FranchiseeId }, options).exec((err, result) => {
+                    if (err) {
+                        console.log(err)
+                        logger.error(err.message, 'Franchisee Controller:updateAadhar', 10)
+                        let apiResponse = response.generate(true, 'Failed To update Franchisee Aadhar PDF', 500, null)
+                        res.send(apiResponse)
+                    } else if (check.isEmpty(result)) {
+                        logger.info('No Franchisee Aadhar PDF details Found', 'Franchisee Controller: updateAadhar')
+                        let apiResponse = response.generate(true, 'No Franchisee Aadhar PDF Found', 404, null)
+                        res.send(apiResponse)
+                    } else {
+                        let apiResponse = response.generate(false, 'Franchisee Aadhar PDF updated', 200, result)
+                        res.send(apiResponse)
+                        cloudinary.deleteFromCloudinary(req.body.AssetToDelete);
+                    }
+                });
+            }
+        });
+    } else {
+        let apiResponse = response.generate(true, '"FranchiseeId" parameter is missing in the request of updateAadhar()', 400, null)
+        res.send(apiResponse);
+    }
+}
+//Aadhar PDF related Functions END
+
+//PAN PDF related Functions
+let getPanPDF = (req, res) => {
+
+    if (check.isEmpty(req.body.FranchiseeId)) {
+
+        console.log('FranchiseeId should be passed')
+        let apiResponse = response.generate(true, 'FranchiseeId is missing', 403, null)
+        res.send(apiResponse)
+    } else {
+
+        PanModel.findOne({ 'FranchiseeId': req.body.FranchiseeId }, (err, result) => {
+
+            if (err) {
+                logger.error(`Error Occured : ${err}`, 'Database', 10)
+                let apiResponse = response.generate(true, 'Error Occured.', 500, null)
+                res.send(apiResponse)
+
+            } else if (check.isEmpty(result)) {
+
+                console.log('Franchisee PAN PDF Not Found.')
+                let apiResponse = response.generate(true, 'Franchisee PAN PDF Not Found', 404, null)
+                res.send(apiResponse)
+            } else {
+                logger.info("Franchisee PAN PDF found successfully", "FranchiseeController:getPanPDF", 5)
+                let apiResponse = response.generate(false, 'Franchisee PAN PDF Found Successfully.', 200, result)
+                res.send(apiResponse)
+            }
+        })
+    }
+}
+
+let uploadpan = (req, res) => {
+    if (req.body.FranchiseeId) {
+        console.log("req body franId is there");
+        console.log(req.body);
+        PanModel.findOne({ "FranchiseeId": req.body.FranchiseeId }, (err, FranchiseePanPDFDetails) => {
+
+            /* handle the error here if the Franchisee PAN PDF Details details are not found */
+            if (err) {
+                console.log(err)
+                logger.error('Failed To Retrieve Franchisee PAN PDF Data', 'FranchiseeController: uploadpan()', 10)
+                /* generate the error message and the api response message here */
+                let apiResponse = response.generate(true, 'Failed To Find Franchisee PAN PDF Details', 500, null)
+                res.send(apiResponse)
+
+            } else {
+
+                console.log(req.file) // to see what is returned to you
+
+                const file = {};
+
+                file.FranchiseeId = req.body.FranchiseeId;
+                file.public_id = req.file.public_id;
+                file.url = req.file.url;
+
+                PanModel.create(file) // save image information in database
+
+                    .then(newFile => res.json(newFile))
+
+                    .catch(
+                        err => logger.error(err, 'userController.uploadpan()', 8))
+            }
+        });
+    } else {
+        let apiResponse = response.generate(true, '"FranchiseeId" parameter is missing in the request uploadpan()', 400, null)
+        res.send(apiResponse);
+    }
+}
+
+let updatepan = (req, res) => {
+    if (req.body.FranchiseeId) {
+        console.log("req body franId is there");
+        console.log(req.body);
+
+        let toDeleteAssetFromCloudinary = req.body.AssetToDelete;
+        console.log("toDeleteAssetFromCloudinary=" + toDeleteAssetFromCloudinary);
+
+        PanModel.findOne({ FranchiseeId: req.body.FranchiseeId }, (err, FranchiseePanPDFDetails) => {
+
+            /* handle the error here if the Franchisee Aadhar PDF Details details are not found */
+            if (err) {
+                console.log(err)
+                logger.error('Failed To Retrieve Franchisee PAN PDF Data', 'FranchiseeController: updatepan()', 10)
+                /* generate the error message and the api response message here */
+                let apiResponse = response.generate(true, 'Failed To Find Franchisee PAN PDF Details', 500, null)
+                res.send(apiResponse)
+
+            } else if (check.isEmpty(FranchiseeProfilePictureDetails)) {
+                console.log('PAN PDF Not Found.')
+                let apiResponse = response.generate(true, 'PAN PDF Not Found', 404, null)
+                res.send(apiResponse)
+
+            } else if (!check.isEmpty(FranchiseeProfilePictureDetails)) {
+
+                let options = req.file;
+
+                console.log(req.file) // to see what is returned to you                
+
+                AadharModel.updateOne({ 'FranchiseeId': req.body.FranchiseeId }, options).exec((err, result) => {
+                    if (err) {
+                        console.log(err)
+                        logger.error(err.message, 'Franchisee Controller:updateAadhar', 10)
+                        let apiResponse = response.generate(true, 'Failed To update Franchisee PAN PDF', 500, null)
+                        res.send(apiResponse)
+                    } else if (check.isEmpty(result)) {
+                        logger.info('No Franchisee PAN PDF details Found', 'Franchisee Controller: updatepan')
+                        let apiResponse = response.generate(true, 'No Franchisee PAN PDF Found', 404, null)
+                        res.send(apiResponse)
+                    } else {
+                        let apiResponse = response.generate(false, 'Franchisee PAN PDF updated', 200, result)
+                        res.send(apiResponse)
+                        cloudinary.deleteFromCloudinary(req.body.AssetToDelete);
+                    }
+                });
+            }
+        });
+    } else {
+        let apiResponse = response.generate(true, '"FranchiseeId" parameter is missing in the request of updatepan()', 400, null)
+        res.send(apiResponse);
+    }
+}
+//PAN PDF related Functions END
+
+/* END Franchisee Personal Information related functions */
+
 
 /* Franchisee Office related functions */
 let getFranOfficeDetails = (req, res) => {
@@ -757,9 +1009,18 @@ module.exports = {
 
     signUpFunction: signUpFunction,
     franchAdditionalDetails: franchAdditionalDetails,
+
     getProfilePicture: getProfilePicture,
     uploadProfilePic: uploadProfilePic,
     updateProfilePic: updateProfilePic,
+
+    getAadharPDF: getAadharPDF,
+    uploadAadhar: uploadAadhar,
+    updateAadhar: updateAadhar,
+
+    getPanPDF: getPanPDF,
+    uploadpan: uploadpan,
+    updatepan: updatepan,
 
     getFranOfficeDetails: getFranOfficeDetails,
     franOfficeDetails: franOfficeDetails,

@@ -1,5 +1,5 @@
 const adminController = require('../controllers/adminController')
-const customerController=require('../controllers/customerController')
+const customerController = require('../controllers/customerController')
 const appConfig = require('../../config/appConfig')
 const auth = require('../middlewares/auth')
 
@@ -17,5 +17,5 @@ module.exports.setRouter = (app) => {
 
     app.get(`${baseUrl}/franchisee/:FranchiseeId/office`, auth.isAuthorized, auth.whatUserType, adminController.getFranchiseeOfficeDetails);
 
-    app.post(`${baseUrl}/get/customer/all`, auth.isAuthorized, customerController.getAllCustomers);
+    app.post(`${baseUrl}/get/customer/all`, auth.isAuthorized, auth.whatUserType, customerController.getAllCustomers);
 }

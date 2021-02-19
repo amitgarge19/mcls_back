@@ -19,21 +19,23 @@ module.exports.setRouter = (app) => {
     app.put(`${baseUrl}/FranAdditional`, auth.isAuthorized, franchiseeController.franchAdditionalDetails);
 
     app.post(`${baseUrl}/get/ProfilePicture`, franchiseeController.getProfilePicture);
-
     app.put(`${baseUrl}/updateProfilePic`, parser.uploadCloudinary.single("image"), franchiseeController.updateProfilePic)
-
     app.post(`${baseUrl}/uploadProfilePic`, parser.uploadCloudinary.single("image"), franchiseeController.uploadProfilePic);
 
+    app.post(`${baseUrl}/get/AadharPDF`, franchiseeController.getAadharPDF);
+    app.put(`${baseUrl}/updateAadhar`, parser.uploadCloudinary.single("image"), franchiseeController.updateAadhar)
+    app.post(`${baseUrl}/uploadAadhar`, parser.uploadCloudinary.single("image"), franchiseeController.uploadAadhar);
+
+    app.post(`${baseUrl}/get/PanPDF`, franchiseeController.getPanPDF);
+    app.put(`${baseUrl}/updatepan`, parser.uploadCloudinary.single("image"), franchiseeController.updatepan);
+    app.post(`${baseUrl}/uploadpan`, parser.uploadCloudinary.single("image"), franchiseeController.uploadpan);
+
     app.post(`${baseUrl}/get/FranOfficeDetails`, auth.isAuthorized, franchiseeController.getFranOfficeDetails);
-
     app.post(`${baseUrl}/FranOfficeDetails`, auth.isAuthorized, franchiseeController.franOfficeDetails);
-
     app.put(`${baseUrl}/updateFranOfficeDetails`, auth.isAuthorized, franchiseeController.updateOfficeDetails);
 
     app.post(`${baseUrl}/get/FranBankDetails`, auth.isAuthorized, franchiseeController.getFranBankDetails);
-
     app.post(`${baseUrl}/FranBankDetails`, auth.isAuthorized, franchiseeController.franbankDetails);
-
     app.put(`${baseUrl}/updateFranBankDetails`, auth.isAuthorized, franchiseeController.updatebankDetails);
     /**
      * @apiGroup users
@@ -91,9 +93,21 @@ module.exports.setRouter = (app) => {
     app.post(`${baseUrl}/get/customer/all/Of/One:FranchiseeId`, auth.isAuthorized, customerController.getAllCustomersOfOne);
 
     app.post(`${baseUrl}/get/customer/:custId`, auth.isAuthorized, customerController.getSingleCustomerInfo);
-    app.post(`${baseUrl}/add/customer`, auth.isAuthorized, customerController.addCustomer);
+    app.post(`${baseUrl}/add/customer`, auth.isAuthorized, customerController.addCustomer);    
     app.put(`${baseUrl}/update/customerBasic`, auth.isAuthorized, customerController.updateCustomerBasicDetails);
 
+    app.post(`${baseUrl}/get/Cust/ProfilePicture`, customerController.getProfilePicture);
+    app.put(`${baseUrl}/Cust/updateCustProfilePic`, parser.uploadCloudinary.single("image"), customerController.updateProfilePic)
+    app.post(`${baseUrl}/Cust/uploadCustProfilePic`, parser.uploadCloudinary.single("image"), customerController.uploadProfilePic);
+
+    app.post(`${baseUrl}/get/Cust/AadharPDF`, customerController.getAadharPDF);
+    app.put(`${baseUrl}/Cust/updateCustAadhar`, parser.uploadCloudinary.single("image"), customerController.updateAadhar)
+    app.post(`${baseUrl}/Cust/uploadCustAadhar`, parser.uploadCloudinary.single("image"), customerController.uploadAadhar);
+
+    app.post(`${baseUrl}/get/Cust/PanPDF`, customerController.getPanPDF);
+    app.put(`${baseUrl}/Cust/updateCustpan`, parser.uploadCloudinary.single("image"), customerController.updatepan)
+    app.post(`${baseUrl}/Cust/uploadCustpan`, parser.uploadCloudinary.single("image"), customerController.uploadpan);
+    
     app.post(`${baseUrl}/get/customerOcc/:custId`, auth.isAuthorized, customerController.getCustomerOccupation);
     app.post(`${baseUrl}/add/custOcc`, auth.isAuthorized, customerController.addCustomerOccupationalDetails);
     app.put(`${baseUrl}/update/custOcc`, auth.isAuthorized, customerController.updateCustomerOccupationalDetails);
