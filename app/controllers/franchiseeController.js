@@ -257,7 +257,7 @@ let signUpFunction = (req, res) => {
 
                         let newFranchisee = new FranchiseeModel({
                             FranchiseeId: shortid.generate(),
-                            firstName: req.body.firstName,
+                            firstName: req.body.firstName,                            
                             middleName: req.body.middleName,
                             lastName: req.body.lastName,
                             email: req.body.email.toLowerCase(),
