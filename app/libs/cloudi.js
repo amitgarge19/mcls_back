@@ -1,6 +1,4 @@
-const multer = require("multer");
 const cloudinary = require("cloudinary");
-const cloudinaryStorage = require("multer-storage-cloudinary");
 const dotenv = require('dotenv'); dotenv.config();
 
 cloudinary.config({
@@ -18,4 +16,4 @@ let deleteFromCloudinary = (public_id) => {
 
 module.exports = {
     deleteFromCloudinary: deleteFromCloudinary
-} 
+}

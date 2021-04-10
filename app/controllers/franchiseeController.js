@@ -6,7 +6,7 @@ const logger = require('../libs/loggerLib');
 const validateInput = require('../libs/paramsValidationLib')
 const check = require('../libs/checkLib');
 const token = require('../libs/tokenLib');
-const passwordLib = require('../libs/generatePassordLib')
+const passwordLib = require('../libs/generatePasswordLib')
 const cloudinary = require('../libs/cloudi')
 
 /* Models */

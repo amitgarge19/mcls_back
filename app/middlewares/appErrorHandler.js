@@ -1,6 +1,5 @@
 const response = require('./../libs/responseLib')
 
-
 let errorHandler = (err,req, res, next) => {
     console.log("application error handler called");
     console.log(err);
